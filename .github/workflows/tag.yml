@@ -1,0 +1,36 @@
+name: Create tag
+on:
+  push:
+    branches:
+      - main
+jobs:
+  PublishTag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
+      - name: Bump version and push tag
+        id: tag
+        uses: anothrNick/github-tag-action@1.36.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.my_pat }}
+          WITH_V: true
+          DEFAULT_BUMP: patch
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+
+      - name: Install prerequisites
+        run: pip install atlassian-python-api
+
+      - name: Check out my other private repo
+        uses: actions/checkout@master
+        with:
+          repository: massmutual/terraform-svm-confluence
+          token: ${{ secrets.my_pat }}
+          path: ./confluence_update
+
+      - name: Update confluence page
+        run: python confluence.py -user ${{ secrets.user }} -token ${{ secrets.token }} -repo_name ${{ github.event.repository.name }} -tag ${{ steps.tag.outputs.tag }}
+        working-directory: ./confluence_update
